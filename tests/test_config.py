@@ -9,8 +9,8 @@ class TestConfig:
     def test_default_values(self) -> None:
         cfg = Config()
         assert cfg.WINDOW_WIDTH == 720
-        assert cfg.WINDOW_HEIGHT == 700
-        assert cfg.WINDOW_TITLE == "Tetris Clone"
+        assert cfg.WINDOW_HEIGHT == 760
+        assert cfg.WINDOW_TITLE == 'NEON GRID  •  TETRIS'
         assert cfg.FPS == 60
         assert cfg.BOARD_COLS == 10
         assert cfg.BOARD_ROWS == 20
@@ -19,7 +19,7 @@ class TestConfig:
     def test_derived_board_px_dimensions(self) -> None:
         cfg = Config()
         assert cfg.BOARD_PX_WIDTH == 10 * 30  # 300
-        assert cfg.BOARD_PX_HEIGHT == 20 * 30  # 600
+        assert cfg.BOARD_PX_HEIGHT == 20 * 30  # 600 (20 rows)
 
     def test_scoring_constants(self) -> None:
         cfg = Config()

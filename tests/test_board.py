@@ -39,12 +39,17 @@ class TestIsInBounds:
         assert board.is_in_bounds(0, 0) is True
         assert board.is_in_bounds(19, 9) is True
         assert board.is_in_bounds(10, 5) is True
+        # Negative rows (above the visible playfield) are allowed
+        assert board.is_in_bounds(-1, 0) is True
+        assert board.is_in_bounds(-19, 9) is True
 
     def test_out_of_bounds(self, board: Board) -> None:
-        assert board.is_in_bounds(-1, 0) is False
         assert board.is_in_bounds(0, -1) is False
         assert board.is_in_bounds(20, 0) is False
         assert board.is_in_bounds(0, 10) is False
+        # Very negative rows are still bounded
+        assert board.is_in_bounds(-20, 0) is True   # -20 >= -20, so valid
+        assert board.is_in_bounds(-21, 0) is False   # -21 < -20, out of bounds
 
 
 # ── Cell emptiness ────────────────────────────────────────────────────────
@@ -53,9 +58,14 @@ class TestIsCellEmpty:
     def test_empty_cell_in_bounds(self, board: Board) -> None:
         assert board.is_cell_empty(5, 5) is True
 
+    def test_negative_row_is_empty(self, board: Board) -> None:
+        """Negative rows (above the board) are always empty."""
+        assert board.is_cell_empty(-1, 0) is True
+        assert board.is_cell_empty(-10, 5) is True
+
     def test_out_of_bounds_cell_is_not_empty(self, board: Board) -> None:
-        assert board.is_cell_empty(-1, 0) is False
-        assert board.is_cell_empty(20, 0) is False
+        assert board.is_cell_empty(20, 0) is False  # below board
+        assert board.is_cell_empty(0, 10) is False   # past right edge
 
     def test_occupied_cell(self, board: Board) -> None:
         board.grid[5][5] = (255, 0, 0)
@@ -204,24 +214,47 @@ class TestGhostPosition:
 # ── Spawning ──────────────────────────────────────────────────────────────
 
 class TestSpawnPiece:
-    def test_spawns_piece_at_top_centre(self, board: Board) -> None:
+    def test_spawns_piece_at_visible_top(self, board: Board) -> None:
         piece = board.spawn_piece()
         assert piece is not None
-        assert piece.row == 0
+        assert piece.row == 3  # first visible row
         assert piece.col == 4  # cols//2 - 1
 
-    def test_game_over_when_no_space(self, board: Board) -> None:
-        """Fill the top row so spawning fails."""
-        board.grid[0] = [(100, 100, 100)] * 10
-        board.grid[1] = [(100, 100, 100)] * 10
+    def test_shifts_up_when_blocked(self, board: Board) -> None:
+        """If row 3 is blocked, piece shifts up into buffer zone (row 2, 1, 0, or -1)."""
+        # Fill row 3 with blocks
+        board.grid[3] = [(100, 100, 100)] * 10
+        piece = board.spawn_piece()
+        assert piece is not None
+        # Piece shifted to a valid position above the blocked row
+        assert piece.row < 3  # shifted up from row 3
+
+    def test_game_over_when_all_rows_blocked(self, board: Board) -> None:
+        """Fill rows 3, 2, 1, 0, -1 so every spawn attempt fails."""
+        for row in (3, 2, 1, 0):
+            board.grid[row] = [(100, 100, 100)] * 10
         result = board.spawn_piece()
-        assert result is None
+        assert result is None  # row -1 also blocked by piece shape
+    
+    def test_negative_row_spawn(self, board: Board) -> None:
+        """Spawn shifts up to row -1 when rows 0-3 are all blocked."""
+        for row in (3, 2, 1, 0):
+            board.grid[row] = [(100, 100, 100)] * 10
+        # Piece at row -1 with I-piece's shape should be valid if col is right
+        # I-piece (rotation 0): (0,-1),(0,0),(0,1),(0,2) -> absolute (-1,3),(-1,4),(-1,5),(-1,6)
+        # All cells at row -1 with negative-rows-allowed
+        piece = Piece("I", row=-1, col=4)
+        assert board.is_valid_position(piece.cells) is True
 
     def test_spawned_piece_cells_are_valid(self, board: Board) -> None:
         for _ in range(50):
             piece = board.spawn_piece()
             assert piece is not None
             assert board.is_valid_position(piece.cells)
+
+    def test_negative_row_is_valid_position(self, board: Board) -> None:
+        cells = [(-1, 4), (0, 4), (1, 4), (2, 4)]  # I-piece vertical at row 0
+        assert board.is_valid_position(cells) is True
 
 
 # ── Clear ─────────────────────────────────────────────────────────────────

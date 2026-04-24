@@ -234,8 +234,17 @@ class GameLoop:
             # Swap: current goes to hold, held becomes current
             hold_name = self.held_piece.name
             self.held_piece = Piece(prev_name, 0, 3)
-            # Re-spawn the held piece at top centre
-            self.current_piece = Piece(hold_name, 0, 3)
+            # Re-spawn the held piece at centre, uses spawn logic (row 3, then shift up)
+            centre = self.cfg.BOARD_COLS // 2 - 1
+            self.current_piece = Piece(hold_name, 3, centre)
+            if not self.board.is_valid_position(self.current_piece.cells):
+                # Try shifting up into buffer zone
+                for row in (2, 1, 0, -1):
+                    self.current_piece = Piece(hold_name, row, centre)
+                    if self.board.is_valid_position(self.current_piece.cells):
+                        break
+                else:
+                    self.state.end_game()
         else:
             # First hold: store current, spawn next
             self.held_piece = Piece(prev_name, 0, 3)

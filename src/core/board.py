@@ -22,13 +22,24 @@ class Board:
     # ── Coordinate helpers ──────────────────────────────────────────────
 
     def is_in_bounds(self, row: int, col: int) -> bool:
-        """Check if a cell is within the board boundaries."""
-        return 0 <= row < self.rows and 0 <= col < self.cols
+        """Check if a cell is within the board boundaries.
+
+        Negative rows (above the visible playfield) are allowed so that
+        piece shapes can extend above the visible area without being
+        considered out of bounds.
+        """
+        return -self.rows <= row < self.rows and 0 <= col < self.cols
 
     def is_cell_empty(self, row: int, col: int) -> bool:
-        """Check if a cell is within bounds AND unoccupied."""
+        """Check if a cell is unoccupied.
+
+        Negative rows (above the board) are always treated as empty.
+        Out-of-bounds bottom or columns are considered blocked.
+        """
         if not self.is_in_bounds(row, col):
             return False
+        if row < 0:
+            return True   # above the board = empty space
         return self.grid[row][col] is None
 
     # ── Collision detection ─────────────────────────────────────────────
@@ -45,9 +56,13 @@ class Board:
     # ── Piece locking ───────────────────────────────────────────────────
 
     def lock_piece(self, piece: Piece) -> None:
-        """Write the piece's cells into the grid permanently."""
+        """Write the piece's cells into the grid permanently.
+
+        Only writes cells that are within the actual grid area (row >= 0).
+        Cells above the board (negative row) are silently dropped.
+        """
         for row, col in piece.cells:
-            if self.is_in_bounds(row, col):
+            if 0 <= row < self.rows and 0 <= col < self.cols:
                 self.grid[row][col] = piece.color
 
     # ── Line clearing ───────────────────────────────────────────────────
@@ -93,18 +108,25 @@ class Board:
     # ── Spawning ────────────────────────────────────────────────────────
 
     def spawn_piece(self) -> Piece | None:
-        """Create a new random piece at the top-centre of the board.
+        """Create a new random piece at the top of the board.
 
-        Returns None if the piece cannot be placed (game over).
+        Tries spawning at row 3 first (visible top). If that position is
+        blocked by the stack, shifts up one row at a time into the buffer
+        zone (rows 2, 1, 0, -1). If even row -1 is blocked, returns None
+        (game over).
+
+        Negative rows above the board are valid — the piece peeks in from
+        the top without overlapping the stack.
         """
         name = random.choice(PIECE_NAMES)
         start_col = self.cols // 2 - 1
-        piece = Piece(name, row=0, col=start_col)
 
-        if not self.is_valid_position(piece.cells):
-            return None  # game over
+        for row in (3, 2, 1, 0, -1):
+            piece = Piece(name, row=row, col=start_col)
+            if self.is_valid_position(piece.cells):
+                return piece
 
-        return piece
+        return None  # game over
 
     def clear(self) -> None:
         """Reset the board to empty."""

@@ -12,10 +12,9 @@ from dataclasses import dataclass, field
 class Config:
     """Application-wide settings for the Tetris clone."""
 
-    # ── Display ──────────────────────────────────────────────────────────
+    WINDOW_TITLE: str = "NEON GRID  •  TETRIS"
     WINDOW_WIDTH: int = 720
-    WINDOW_HEIGHT: int = 700
-    WINDOW_TITLE: str = "Tetris Clone"
+    WINDOW_HEIGHT: int = 760
     FPS: int = 60
 
     # ── Board dimensions (cells) ─────────────────────────────────────────
@@ -25,14 +24,17 @@ class Config:
     BOARD_Y_OFFSET: int = 50   # px from top edge
     CELL_SIZE: int = 30
 
+    # ── Layout gaps (for centering) ─────────────────────────────────────
+    PANEL_GAP: int = 20  # px gap between panels and board
+
     # ── Hold panel (left side) ───────────────────────────────────────────
     HOLD_PANEL_WIDTH: int = 130
-    HOLD_PANEL_X: int = 25
+    HOLD_PANEL_X: int = field(init=False)
     HOLD_PANEL_Y: int = BOARD_Y_OFFSET
 
     # ── Next piece panel (right side) ────────────────────────────────────
     PANEL_WIDTH: int = 150
-    PANEL_X: int = BOARD_X_OFFSET + BOARD_COLS * CELL_SIZE + 20
+    PANEL_X: int = field(init=False)
     PANEL_Y: int = BOARD_Y_OFFSET
 
     # ── Gameplay ─────────────────────────────────────────────────────────
@@ -62,3 +64,13 @@ class Config:
     def __post_init__(self) -> None:
         self.BOARD_PX_WIDTH = self.BOARD_COLS * self.CELL_SIZE
         self.BOARD_PX_HEIGHT = self.BOARD_ROWS * self.CELL_SIZE
+
+        # ── Compute centered panel positions ─────────────────────────────────
+        # Content width: hold_panel + gap + board + gap + right_panel
+        content_w = self.HOLD_PANEL_WIDTH + self.PANEL_GAP + self.BOARD_PX_WIDTH + self.PANEL_GAP + self.PANEL_WIDTH
+        left_margin = (self.WINDOW_WIDTH - content_w) // 2
+        self.HOLD_PANEL_X = left_margin
+        self.HOLD_PANEL_Y = self.BOARD_Y_OFFSET
+        self.BOARD_X_OFFSET = left_margin + self.HOLD_PANEL_WIDTH + self.PANEL_GAP
+        self.PANEL_X = self.BOARD_X_OFFSET + self.BOARD_PX_WIDTH + self.PANEL_GAP
+        self.PANEL_Y = self.BOARD_Y_OFFSET

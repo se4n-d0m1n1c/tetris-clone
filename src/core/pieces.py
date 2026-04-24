@@ -62,13 +62,13 @@ SHAPES: dict[str, list[list[tuple[int, int]]]] = {
 
 # ── Colours (one per piece type) ──────────────────────────────────────────
 PIECE_COLORS: dict[str, pygame.Color] = {
-    "I": pygame.Color("cyan"),
-    "O": pygame.Color("yellow"),
-    "T": pygame.Color("purple"),
-    "S": pygame.Color("green"),
-    "Z": pygame.Color("red"),
-    "J": pygame.Color("blue"),
-    "L": pygame.Color("orange"),
+    "I": pygame.Color("#00e5ff"),   # bright cyan
+    "O": pygame.Color("#ffe74c"),   # bright yellow
+    "T": pygame.Color("#d500f9"),   # neon purple
+    "S": pygame.Color("#76ff03"),   # lime green
+    "Z": pygame.Color("#ff1744"),   # bright red
+    "J": pygame.Color("#ff9100"),   # bright orange
+    "L": pygame.Color("#2979ff"),   # bright blue
 }
 
 # ── SRS wall-kick data ────────────────────────────────────────────────────
