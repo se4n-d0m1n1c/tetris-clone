@@ -209,10 +209,7 @@ class GameLoop:
         self._spawn_next()
 
     def _spawn_next(self) -> None:
-        """Promote next_piece to current (revalidating position), then generate a new next_piece."""
-        # Re-validate the piece's spawn position based on current board state.
-        # The previously generated next_piece may be blocked now after the last lock.
-        centre = self.cfg.BOARD_COLS // 2 - 1
+        """Promote next_piece to current (revalidating with random rotation), then generate new next_piece."""
         name = self.next_piece.name if self.next_piece else None
 
         if name is None:
@@ -220,20 +217,13 @@ class GameLoop:
             self.state.end_game()
             return
 
-        # Find the first valid spawn row (from row 3 down to -1)
-        candidate = None
-        for row in (3, 2, 1, 0, -1):
-            candidate = Piece(name, row, centre)
-            if self.board.is_valid_position(candidate.cells):
-                self.current_piece = candidate
-                break
-        else:
-            # No valid position for this piece type = game over
-            self.current_piece = None
+        # Use board's spawn_piece_by_name to find a valid placement with random rotation
+        self.current_piece = self.board.spawn_piece_by_name(name)
+        if self.current_piece is None:
             self.state.end_game()
             return
 
-        # Generate a fresh next piece
+        # Generate a fresh next piece (random type and rotation)
         self.next_piece = self.board.spawn_piece()
 
         self._drop_timer = 0.0
@@ -252,34 +242,23 @@ class GameLoop:
         self._can_hold = False
 
         if self.held_piece is not None:
-            # Swap: current goes to hold, held becomes current
+            # Swap: current goes to hold, held becomes current with random rotation
             hold_name = self.held_piece.name
             self.held_piece = Piece(prev_name, 0, 3)
-            # Re-spawn the held piece at centre, uses spawn logic (row 3, then shift up)
-            centre = self.cfg.BOARD_COLS // 2 - 1
-            self.current_piece = Piece(hold_name, 3, centre)
-            if not self.board.is_valid_position(self.current_piece.cells):
-                # Try shifting up into buffer zone
-                for row in (2, 1, 0, -1):
-                    self.current_piece = Piece(hold_name, row, centre)
-                    if self.board.is_valid_position(self.current_piece.cells):
-                        break
-                else:
-                    self.state.end_game()
+            # Spawn the held piece at centre with random rotation, find any valid row
+            self.current_piece = self.board.spawn_piece_by_name(hold_name)
+            if self.current_piece is None:
+                self.state.end_game()
+                return
         else:
-            # First hold: store current, spawn next
+            # First hold: store current, spawn next with random rotation
             self.held_piece = Piece(prev_name, 0, 3)
-            # Promote next_piece, but ensure it's valid at spawn position
-            centre = self.cfg.BOARD_COLS // 2 - 1
-            self.current_piece = Piece(self.next_piece.name, 3, centre)
-            if not self.board.is_valid_position(self.current_piece.cells):
-                # Try shifting up into buffer zone
-                for row in (2, 1, 0, -1):
-                    self.current_piece = Piece(self.next_piece.name, row, centre)
-                    if self.board.is_valid_position(self.current_piece.cells):
-                        break
-                else:
-                    self.state.end_game()
+            # Spawn a new current piece from next_piece type, with random rotation
+            self.current_piece = self.board.spawn_piece_by_name(self.next_piece.name)
+            if self.current_piece is None:
+                self.state.end_game()
+                return
+            # Generate a fresh next piece (random type and rotation)
             self.next_piece = self.board.spawn_piece()
 
         self._drop_timer = 0.0

@@ -108,25 +108,26 @@ class Board:
     # ── Spawning ────────────────────────────────────────────────────────
 
     def spawn_piece(self) -> Piece | None:
-        """Create a new random piece at the top of the board.
-
-        Tries spawning at row 3 first (visible top). If that position is
-        blocked by the stack, shifts up one row at a time into the buffer
-        zone (rows 2, 1, 0, -1). If even row -1 is blocked, returns None
-        (game over).
-
-        Negative rows above the board are valid — the piece peeks in from
-        the top without overlapping the stack.
-        """
+        """Create a new random piece with random rotation at the lowest valid row."""
         name = random.choice(PIECE_NAMES)
-        start_col = self.cols // 2 - 1
+        return self.spawn_piece_by_name(name)
 
+    def spawn_piece_by_name(self, name: str) -> Piece | None:
+        """Spawn a piece of the given type with random rotation.
+
+        Tries rows from 3 down to -1, attempting a random rotation order.
+        Returns the first valid placement, or None if no placement works.
+        """
+        centre = self.cols // 2 - 1
+        rotations = [0, 1, 2, 3]
+        random.shuffle(rotations)
         for row in (3, 2, 1, 0, -1):
-            piece = Piece(name, row=row, col=start_col)
-            if self.is_valid_position(piece.cells):
-                return piece
-
-        return None  # game over
+            for rot in rotations:
+                piece = Piece(name, row, centre)
+                piece.rotation = rot
+                if self.is_valid_position(piece.cells):
+                    return piece
+        return None
 
     def clear(self) -> None:
         """Reset the board to empty."""
