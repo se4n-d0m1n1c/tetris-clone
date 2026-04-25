@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import random
 
-from src.core.pieces import SHAPES, Piece, PIECE_NAMES
+from src.core.pieces import SHAPES, Piece, PIECE_NAMES, SPAWN_ROTATION
 
 
 class Board:
@@ -113,20 +113,20 @@ class Board:
         return self.spawn_piece_by_name(name)
 
     def spawn_piece_by_name(self, name: str) -> Piece | None:
-        """Spawn a piece of the given type with random rotation.
+        """Spawn a piece of the given type with its configured spawn rotation.
 
-        Tries rows from 3 down to -1, attempting a random rotation order.
+        Tries rows from 3 down to -1, using the piece's predefined spawn rotation.
+        A spawn is only valid if the piece has at least one cell in the visible
+        or above area (row >= 0), preventing pieces from being entirely off-screen.
         Returns the first valid placement, or None if no placement works.
         """
         centre = self.cols // 2 - 1
-        rotations = [0, 1, 2, 3]
-        random.shuffle(rotations)
+        rot = SPAWN_ROTATION.get(name, 0)
         for row in (3, 2, 1, 0, -1):
-            for rot in rotations:
-                piece = Piece(name, row, centre)
-                piece.rotation = rot
-                if self.is_valid_position(piece.cells):
-                    return piece
+            piece = Piece(name, row, centre)
+            piece.rotation = rot
+            if self.is_valid_position(piece.cells) and any(r >= 0 for r, _ in piece.cells):
+                return piece
         return None
 
     def clear(self) -> None:

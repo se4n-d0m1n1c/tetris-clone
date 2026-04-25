@@ -98,6 +98,18 @@ WALL_KICKS_I: dict[tuple[int, int], list[tuple[int, int]]] = {
 
 PIECE_NAMES: list[str] = ["I", "O", "T", "S", "Z", "J", "L"]
 
+# ── Spawn rotations ─────────────────────────────────────────────────────
+# Fixed rotation for each piece type at spawn (0-3)
+SPAWN_ROTATION: dict[str, int] = {
+    "I": 0,   # horizontal bar
+    "O": 0,   # square (all rotations same)
+    "T": 0,   # stem up (flat bottom)
+    "S": 0,   # laying down
+    "Z": 0,   # laying down
+    "J": 0,   # 3-block bottom, hook top-right
+    "L": 0,   # 3-block bottom, hook top-left
+}
+
 
 class Piece:
     """A single Tetris piece with position, rotation state, and type."""
