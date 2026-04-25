@@ -209,16 +209,37 @@ class GameLoop:
         self._spawn_next()
 
     def _spawn_next(self) -> None:
-        """Promote next_piece to current, then generate a new next_piece."""
-        self.current_piece = self.next_piece
+        """Promote next_piece to current (revalidating position), then generate a new next_piece."""
+        # Re-validate the piece's spawn position based on current board state.
+        # The previously generated next_piece may be blocked now after the last lock.
+        centre = self.cfg.BOARD_COLS // 2 - 1
+        name = self.next_piece.name if self.next_piece else None
+
+        if name is None:
+            self.current_piece = None
+            self.state.end_game()
+            return
+
+        # Find the first valid spawn row (from row 3 down to -1)
+        candidate = None
+        for row in (3, 2, 1, 0, -1):
+            candidate = Piece(name, row, centre)
+            if self.board.is_valid_position(candidate.cells):
+                self.current_piece = candidate
+                break
+        else:
+            # No valid position for this piece type = game over
+            self.current_piece = None
+            self.state.end_game()
+            return
+
+        # Generate a fresh next piece
         self.next_piece = self.board.spawn_piece()
+
         self._drop_timer = 0.0
         self._lock_timer = 0.0
         self._is_locking = False
         self._can_hold = True
-
-        if self.current_piece is None:
-            self.state.end_game()
 
     # ── Hold ───────────────────────────────────────────────────────────────
 
@@ -248,7 +269,17 @@ class GameLoop:
         else:
             # First hold: store current, spawn next
             self.held_piece = Piece(prev_name, 0, 3)
-            self.current_piece = self.next_piece
+            # Promote next_piece, but ensure it's valid at spawn position
+            centre = self.cfg.BOARD_COLS // 2 - 1
+            self.current_piece = Piece(self.next_piece.name, 3, centre)
+            if not self.board.is_valid_position(self.current_piece.cells):
+                # Try shifting up into buffer zone
+                for row in (2, 1, 0, -1):
+                    self.current_piece = Piece(self.next_piece.name, row, centre)
+                    if self.board.is_valid_position(self.current_piece.cells):
+                        break
+                else:
+                    self.state.end_game()
             self.next_piece = self.board.spawn_piece()
 
         self._drop_timer = 0.0
